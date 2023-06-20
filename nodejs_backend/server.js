@@ -5,8 +5,10 @@ var app = express();
 var bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: false}))
 app.use(bodyParser.json());
+app.use(express.static(__dirname + '/images'));
+
 require('./src/routes/post_router')(app);
 
-app.listen(4000, function () {
-    console.log("Server is running on port 4000");
+app.listen(3000, function () {
+    console.log("Server is running on port 3000");
 });
