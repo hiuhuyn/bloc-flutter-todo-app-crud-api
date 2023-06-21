@@ -58,8 +58,10 @@ class PostBloc extends Bloc<PostEvent, PostState> {
 
   FutureOr<void> updatePostEventBloc(
       UpdatePostEvent event, Emitter<PostState> emit) async {
-    emit(PostsFetchingLoadingState());
-    try {} catch (e) {
+    try {
+      var post = event.post.toJson();
+      await _networkApiService.updatePostApiResponse(AppUrl.updatePost, post);
+    } catch (e) {
       print(e);
       emit(PostsFetchingErrorState());
     }

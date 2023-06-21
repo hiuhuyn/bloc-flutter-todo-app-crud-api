@@ -11,6 +11,7 @@ class AppRoute {
   static List<PageEntity> Routes() {
     return [
       PageEntity(path: RouteName.HomePage, page: HomePageScreen()),
+      PageEntity(path: RouteName.Main, page: HomePageScreen()),
     ];
   }
 

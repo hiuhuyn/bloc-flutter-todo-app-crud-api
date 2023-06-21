@@ -1,5 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.flutter_app_fontend">
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"></uses-permission>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="30"></uses-permission>
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"></uses-permission>
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"></uses-permission>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"></uses-permission>
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"></uses-permission>
+    <uses-permission android:name="android.permission.CAMERA"/>
+
    <application
         android:label="flutter_app_fontend"
         android:name="${applicationName}"

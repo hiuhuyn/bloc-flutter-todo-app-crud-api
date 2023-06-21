@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ffi';
 import 'dart:io';
 import 'package:flutter_app_fontend/models/post.dart';
 
@@ -66,10 +67,17 @@ class NetworkApiService extends BaseApiService {
   @override
   Future updatePostApiResponse(String url, data) async {
     try {
-      final resonse = await http
-          .put(Uri.parse(url), body: data)
-          .timeout(const Duration(seconds: 10));
-      return returnResponse(resonse);
+      var request = http.MultipartRequest("put", Uri.parse(url));
+      var multipartFile = await http.MultipartFile.fromPath(
+        'image',
+        data["image"],
+      );
+      request.fields["id"] = data["id"].toString();
+      request.files.add(multipartFile);
+      request.fields["title"] = data["title"];
+      request.send();
+    } on SocketException {
+      print("No internet Connection");
     } catch (e) {
       print(e);
     }

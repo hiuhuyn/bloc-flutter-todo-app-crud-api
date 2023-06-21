@@ -18,6 +18,7 @@ class HomePageScreen extends StatefulWidget {
 
 class _HomePageScreenState extends State<HomePageScreen> {
   final PostBloc postBloc = PostBloc();
+  TextEditingController controller = TextEditingController();
 
   @override
   void initState() {
@@ -61,7 +62,15 @@ class _HomePageScreenState extends State<HomePageScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          _showFormAddPost(context);
+          _showBottomSheet(context, "THÊM POST", () async {
+            await pickImageFromGallery().then((value) {
+              Post post = Post(image: value, title: controller.text);
+              postBloc.add(AddPostEvent(post: post));
+              controller.clear();
+              Future.delayed(const Duration(seconds: 2));
+              postBloc.add(GetAllPostEvent());
+            });
+          });
         },
         child: const Icon(Icons.add),
       ),
@@ -123,7 +132,23 @@ class _HomePageScreenState extends State<HomePageScreen> {
                     state.posts.removeAt(index);
                   },
                   icon: const Icon(Icons.delete)),
-              IconButton(onPressed: () {}, icon: const Icon(Icons.edit))
+              IconButton(
+                  onPressed: () {
+                    controller.text = state.posts[index].title;
+                    _showBottomSheet(context, "Cập nhật", () async {
+                      await pickImageFromGallery().then((value) {
+                        Post post = Post(
+                            id: state.posts[index].id,
+                            image: value,
+                            title: controller.text);
+                        postBloc.add(UpdatePostEvent(post: post));
+                      });
+                      controller.clear();
+                      await Future.delayed(const Duration(seconds: 2));
+                      postBloc.add(GetAllPostEvent());
+                    });
+                  },
+                  icon: const Icon(Icons.edit))
             ],
           )
         ],
@@ -140,8 +165,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
     return Placeholder();
   }
 
-  void _showFormAddPost(BuildContext ctx) {
-    TextEditingController controller = TextEditingController();
+  void _showBottomSheet(BuildContext ctx, String title, VoidCallback onPress) {
     showModalBottomSheet(
         elevation: 10,
         backgroundColor: Colors.white,
@@ -152,9 +176,10 @@ class _HomePageScreenState extends State<HomePageScreen> {
                 const SizedBox(
                   height: 30,
                 ),
-                const Text(
-                  "THÊM POST",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                Text(
+                  title,
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(10, 15, 10, 20),
@@ -168,16 +193,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
                                 BorderRadius.all(Radius.circular(10)))),
                   ),
                 ),
-                ElevatedButton(
-                    onPressed: () async {
-                      await pickImageFromGallery().then((value) {
-                        Post post = Post(image: value, title: controller.text);
-                        postBloc.add(AddPostEvent(post: post));
-                      });
-                      await Future.delayed(const Duration(seconds: 2));
-                      postBloc.add(GetAllPostEvent());
-                    },
-                    child: const Text("Save"))
+                ElevatedButton(onPressed: onPress, child: Text(title))
               ],
             ));
   }
