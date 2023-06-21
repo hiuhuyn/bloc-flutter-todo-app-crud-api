@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:dio/dio.dart';
 import 'package:flutter_app_fontend/models/post.dart';
 
 import '../app_excaptions.dart';
@@ -8,7 +7,6 @@ import 'baseApiService.dart';
 import 'package:http/http.dart' as http;
 
 class NetworkApiService extends BaseApiService {
-  final Dio dio = Dio();
   @override
   Future createPostApiResponse(String url, data) async {
     try {
@@ -40,7 +38,6 @@ class NetworkApiService extends BaseApiService {
   @override
   Future<List<Post>> getAllPostApiResponse(String url) async {
     try {
-      // var resonse = await dio.get();
       final resonse =
           await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
       List<dynamic> result = returnResponse(resonse);

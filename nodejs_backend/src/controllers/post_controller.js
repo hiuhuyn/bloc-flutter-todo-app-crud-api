@@ -24,7 +24,7 @@ exports.deletePost = function(require, result){
     Post.deletePost(id, function(response){
         if(response != null ){
             // xóa file ảnh
-            const path = response.image.replace("http://localhost:3000/", "");
+            const path = response.image.replace("http://192.168.1.4:3000/", "");
             fs.unlink(path, (err) => {
                 if (err){
                     console.log(err);

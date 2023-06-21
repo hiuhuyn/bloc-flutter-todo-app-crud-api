@@ -35,7 +35,7 @@ Post.create = function(require, result){
     var data = {
         id: require.body.id,
         title: require.body.title,
-        image: 'http://localhost:3000/images/' + require.file.filename
+        image: 'http://192.168.1.4:3000/images/' + require.file.filename
     };
     db.query("INSERT INTO Post SET?", data, function (err, post) {
             if (err) {
@@ -67,7 +67,7 @@ Post.updatePost = function(require, result ){
     var post = {
         id: require.body.id,
         title: require.body.title,
-        image: 'http://localhost:3000/images/' + require.file.filename
+        image: 'http://192.168.1.4:3000/images/' + require.file.filename
     };
     db.query("UPDATE Post SET title =?, image =? WHERE id =?", [post.title, post.image, post.id], function (err, post) {
         if (err) {
