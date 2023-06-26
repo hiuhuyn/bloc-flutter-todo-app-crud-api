@@ -1,39 +1,38 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:equatable/equatable.dart';
 
 import '../../models/post.dart';
 
-abstract class PostState extends Equatable {}
-
-class InitPostState extends PostState {
-  @override
-  // TODO: implement props
-  List<Object?> get props => throw UnimplementedError();
-}
-
-class PostsFetchingLoadingState extends PostState {
-  @override
-  // TODO: implement props
-  List<Object?> get props => throw UnimplementedError();
-}
-
-class PostsFetchingErrorState extends PostState {
-  @override
-  // TODO: implement props
-  List<Object?> get props => throw UnimplementedError();
-}
-
-class PostFetchingSuccessfulState extends PostState {
-  List<Post> posts = [];
-  PostFetchingSuccessfulState({required this.posts});
+class PostState extends Equatable {
+  List<Post> posts;
+  PostState({this.posts = const <Post>[]});
 
   @override
   // TODO: implement props
   List<Object?> get props => [posts];
+
+  PostState copyWith({
+    List<Post>? posts,
+  }) {
+    return PostState(
+      posts: posts ?? this.posts,
+    );
+  }
 }
 
-class PostSearchSuccessfullState extends PostState {
+class PostLoadingState extends PostState {}
+
+class PostErrorState extends PostState {
+  String error = "";
+  PostErrorState({required this.error});
+  @override
+  // TODO: implement props
+  List<Object?> get props => [error];
+}
+
+class PostSearchState extends PostState {
   Post post;
-  PostSearchSuccessfullState({required this.post});
+  PostSearchState({required this.post});
   @override
   // TODO: implement props
   List<Object?> get props => [post];

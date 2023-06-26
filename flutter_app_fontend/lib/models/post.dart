@@ -1,3 +1,4 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
 class Post {
   int? id;
   String title = "";
@@ -19,12 +20,18 @@ class Post {
     return data;
   }
 
-  String get imageUrl {
-    var listString = image.split('/');
-    if (listString.first == 'http:' || listString.first == 'https:') {
-      return image;
-    } else {
-      return "";
-    }
+  Post copyWith({
+    int? id,
+    String? title,
+    String? image,
+  }) {
+    return Post(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      image: image ?? this.image,
+    );
   }
+
+  @override
+  String toString() => 'Post(id: $id, title: $title, image: $image)';
 }

@@ -15,7 +15,7 @@ exports.getAllPosts = function(require, result){
 }
 exports.addPost = function(require, result){
     Post.create(require, function(response){
-            result.send('Thêm thành công');
+            result.send(response);
         });
 }
 
@@ -24,8 +24,7 @@ exports.deletePost = function(require, result){
     Post.deletePost(id, function(response){
         if(response != null ){
             // xóa file ảnh
-            const path = response.image.replace("http://192.168.1.4:3000/", "");
-            fs.unlink(path, (err) => {
+            fs.unlink(response.image, (err) => {
                 if (err){
                     console.log(err);
                 }else console.log('File deleted successfully');

@@ -1,8 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app_fontend/bloc/bloc/post_bloc.dart';
 import 'package:flutter_app_fontend/bloc/event/post_event.dart';
 import 'package:flutter_app_fontend/bloc/state/post_state.dart';
+import 'package:flutter_app_fontend/utils/app_url.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -17,14 +19,12 @@ class HomePageScreen extends StatefulWidget {
 }
 
 class _HomePageScreenState extends State<HomePageScreen> {
-  final PostBloc postBloc = PostBloc();
   TextEditingController controller = TextEditingController();
-
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    postBloc.add(GetAllPostEvent());
+    context.read<PostBloc>().add(GetAllPostEvent());
   }
 
   @override
@@ -35,28 +35,37 @@ class _HomePageScreenState extends State<HomePageScreen> {
         actions: [
           IconButton(
               onPressed: () {
-                postBloc.add(GetAllPostEvent());
+                BlocProvider.of<PostBloc>(context).add(GetAllPostEvent());
               },
               icon: const Icon(Icons.refresh))
         ],
       ),
       body: BlocConsumer<PostBloc, PostState>(
-        bloc: postBloc,
         listener: (context, state) {},
         builder: (context, state) {
           switch (state.runtimeType) {
-            case PostsFetchingLoadingState:
-              return const Center(child: CircularProgressIndicator());
-            case PostFetchingSuccessfulState:
-              return fetchingSuccessFull(state as PostFetchingSuccessfulState);
-            case PostsFetchingErrorState:
+            case PostLoadingState:
               return const Center(
-                child: Icon(Icons.error),
+                  child: CircularProgressIndicator(
+                color: Colors.green,
+              ));
+
+            case PostErrorState:
+              var stateErr = state as PostErrorState;
+              return Column(
+                children: [
+                  const Icon(Icons.error_outline, size: 30),
+                  const SizedBox(
+                    height: 30,
+                  ),
+                  Text(
+                    "Error: ${stateErr.error}",
+                    style: const TextStyle(color: Colors.red, fontSize: 20),
+                  ),
+                ],
               );
             default:
-              return Container(
-                color: Colors.amber,
-              );
+              return fetchingSuccessFull(state);
           }
         },
       ),
@@ -65,10 +74,9 @@ class _HomePageScreenState extends State<HomePageScreen> {
           _showBottomSheet(context, "THÊM POST", () async {
             await pickImageFromGallery().then((value) {
               Post post = Post(image: value, title: controller.text);
-              postBloc.add(AddPostEvent(post: post));
+              context.read<PostBloc>().add(AddPostEvent(post: post));
               controller.clear();
-              Future.delayed(const Duration(seconds: 2));
-              postBloc.add(GetAllPostEvent());
+              Navigator.pop(context);
             });
           });
         },
@@ -78,19 +86,19 @@ class _HomePageScreenState extends State<HomePageScreen> {
     );
   }
 
-  Widget fetchingSuccessFull(PostFetchingSuccessfulState state) {
+  Widget fetchingSuccessFull(PostState state) {
     return Container(
       padding: const EdgeInsets.all(10),
       child: ListView.builder(
         itemCount: state.posts.isNotEmpty ? state.posts.length : 0,
         itemBuilder: (context, index) {
-          return itemPost(state, index);
+          return itemPost(state.posts[index]);
         },
       ),
     );
   }
 
-  Widget itemPost(PostFetchingSuccessfulState state, int index) {
+  Widget itemPost(Post post) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 10),
       padding: const EdgeInsets.all(10),
@@ -110,7 +118,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "${state.posts[index].id}\n${state.posts[index].title}",
+                "${post.id}\n${post.title}",
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -120,32 +128,30 @@ class _HomePageScreenState extends State<HomePageScreen> {
                   height: 200,
                   width: 300,
                   margin: const EdgeInsets.all(10),
-                  child:
-                      FittedBox(child: imagePost(state.posts[index].imageUrl))),
+                  child: FittedBox(child: imagePost(post.image))),
             ],
           ),
           Column(
             children: [
               IconButton(
                   onPressed: () {
-                    postBloc.add(DeletePostEvent(id: state.posts[index].id!));
-                    state.posts.removeAt(index);
+                    BlocProvider.of<PostBloc>(context)
+                        .add(DeletePostEvent(id: post.id!));
                   },
                   icon: const Icon(Icons.delete)),
               IconButton(
                   onPressed: () {
-                    controller.text = state.posts[index].title;
+                    controller.text = post.title;
                     _showBottomSheet(context, "Cập nhật", () async {
                       await pickImageFromGallery().then((value) {
-                        Post post = Post(
-                            id: state.posts[index].id,
-                            image: value,
-                            title: controller.text);
-                        postBloc.add(UpdatePostEvent(post: post));
+                        post =
+                            post.copyWith(image: value, title: controller.text);
+                        context
+                            .read<PostBloc>()
+                            .add(UpdatePostEvent(post: post));
+                        controller.clear();
+                        Navigator.pop(context);
                       });
-                      controller.clear();
-                      await Future.delayed(const Duration(seconds: 2));
-                      postBloc.add(GetAllPostEvent());
                     });
                   },
                   icon: const Icon(Icons.edit))
@@ -157,45 +163,55 @@ class _HomePageScreenState extends State<HomePageScreen> {
   }
 
   Widget imagePost(String image) {
-    if (image != "") {
-      return Image.network(
-        image,
-      );
+    try {
+      if (image.isNotEmpty) {
+        return Image.network(
+          AppUrl.baseUrl + image,
+        );
+      } else {
+        throw Exception("Image is empty");
+      }
+    } catch (e) {
+      print("Loading image failed: $e");
+      return const Placeholder();
     }
-    return Placeholder();
   }
 
   void _showBottomSheet(BuildContext ctx, String title, VoidCallback onPress) {
-    showModalBottomSheet(
-        elevation: 10,
-        backgroundColor: Colors.white,
-        context: ctx,
-        builder: (ctx) => Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(
-                  height: 30,
-                ),
-                Text(
-                  title,
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 15, 10, 20),
-                  child: TextFormField(
-                    controller: controller,
-                    decoration: const InputDecoration(
-                        hintText: 'Tiêu đề',
-                        labelText: 'Tiêu đề',
-                        border: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(10)))),
+    try {
+      showModalBottomSheet(
+          elevation: 10,
+          backgroundColor: Colors.white,
+          context: ctx,
+          builder: (ctx) => Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    height: 30,
                   ),
-                ),
-                ElevatedButton(onPressed: onPress, child: Text(title))
-              ],
-            ));
+                  Text(
+                    title,
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 15, 10, 20),
+                    child: TextFormField(
+                      controller: controller,
+                      decoration: const InputDecoration(
+                          hintText: 'Tiêu đề',
+                          labelText: 'Tiêu đề',
+                          border: OutlineInputBorder(
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(10)))),
+                    ),
+                  ),
+                  ElevatedButton(onPressed: onPress, child: Text(title))
+                ],
+              ));
+    } catch (e) {
+      print("Error while _showBottomSheet: $e");
+    }
   }
 
   Future<String> pickImageFromGallery() async {

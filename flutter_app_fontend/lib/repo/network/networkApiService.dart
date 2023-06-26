@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 import 'package:flutter_app_fontend/models/post.dart';
+import 'package:flutter_app_fontend/utils/app_url.dart';
 
 import '../app_excaptions.dart';
 import 'baseApiService.dart';
@@ -9,7 +10,7 @@ import 'package:http/http.dart' as http;
 
 class NetworkApiService extends BaseApiService {
   @override
-  Future createPostApiResponse(String url, data) async {
+  Future<String> createPostApiResponse(String url, data) async {
     try {
       var request = http.MultipartRequest("post", Uri.parse(url));
       var multipartFile = await http.MultipartFile.fromPath(
@@ -18,11 +19,15 @@ class NetworkApiService extends BaseApiService {
       );
       request.files.add(multipartFile);
       request.fields["title"] = data["title"];
-      request.send();
+      var resonse = await request.send();
+      var resonseData = await resonse.stream.bytesToString();
+      print("add post return: ${resonseData}");
+      var idPost = jsonDecode(resonseData)["insertId"].toString();
+      return idPost;
     } on SocketException {
-      print("No internet Connection");
+      throw Exception("No internet Connection");
     } catch (e) {
-      print(e);
+      throw Exception("Error createPostApiResponse: $e");
     }
   }
 
@@ -31,8 +36,10 @@ class NetworkApiService extends BaseApiService {
     try {
       final resonse = await http.delete(Uri.parse(url));
       return returnResponse(resonse);
+    } on SocketException {
+      throw Exception("No internet Connection");
     } catch (e) {
-      print(e);
+      throw Exception("Error deleteByIdPostApiResponse: $e");
     }
   }
 
@@ -44,9 +51,10 @@ class NetworkApiService extends BaseApiService {
       List<dynamic> result = returnResponse(resonse);
       List<Post> posts = result.map((e) => Post.fromJson(e)).toList();
       return posts;
+    } on SocketException {
+      throw Exception("No internet Connection");
     } catch (e) {
-      print("Error getAllPostApiResponse: $e");
-      return [];
+      throw Exception("Error getAllPostApiResponse: $e");
     }
   }
 
@@ -56,11 +64,11 @@ class NetworkApiService extends BaseApiService {
       final resonse =
           await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
       var result = returnResponse(resonse);
-      print("Result getPostByIdApiResponse: $result");
       return Post.fromJson(result);
+    } on SocketException {
+      throw Exception("No internet Connection");
     } catch (e) {
-      print("getPostByIdApiResponse: $e");
-      throw FetchDataException("$e");
+      throw Exception("Error getPostByIdApiResponse: $e");
     }
   }
 
@@ -75,11 +83,11 @@ class NetworkApiService extends BaseApiService {
       request.fields["id"] = data["id"].toString();
       request.files.add(multipartFile);
       request.fields["title"] = data["title"];
-      request.send();
+      await request.send();
     } on SocketException {
-      print("No internet Connection");
+      throw Exception("No internet Connection");
     } catch (e) {
-      print(e);
+      throw Exception("Error updatePostApiResponse: $e");
     }
   }
 

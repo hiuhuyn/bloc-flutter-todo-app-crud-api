@@ -10,7 +10,7 @@ import '../../models/post.dart';
 
 class PostBloc extends Bloc<PostEvent, PostState> {
   final NetworkApiService _networkApiService = NetworkApiService();
-  PostBloc() : super(InitPostState()) {
+  PostBloc() : super(PostState()) {
     on<GetAllPostEvent>(getAllPostEventBloc);
     on<GetPostByIdEvent>(getPostByIdEventBloc);
     on<AddPostEvent>(addPostEventBloc);
@@ -20,65 +20,82 @@ class PostBloc extends Bloc<PostEvent, PostState> {
 
   FutureOr<void> getAllPostEventBloc(
       GetAllPostEvent event, Emitter<PostState> emit) async {
-    emit(PostsFetchingLoadingState());
+    emit(PostLoadingState());
     try {
       List<Post> posts =
           await _networkApiService.getAllPostApiResponse(AppUrl.selectAllPost);
-      print("Posts getAll : ${posts}");
-      emit(PostFetchingSuccessfulState(posts: posts));
+      emit(state.copyWith(posts: posts));
     } catch (e) {
       print("Error getAllPostEvent bloc: $e");
-      emit(PostsFetchingErrorState());
+      emit(PostErrorState(error: e.toString()));
     }
   }
 
   FutureOr<void> getPostByIdEventBloc(
       GetPostByIdEvent event, Emitter<PostState> emit) async {
-    emit(PostsFetchingLoadingState());
+    emit(PostLoadingState());
     try {
       var post = await _networkApiService
           .getPostByIdApiResponse("${AppUrl.selectPostById}${event.id}");
-      emit(PostSearchSuccessfullState(post: post));
+      emit(PostSearchState(post: post));
     } catch (e) {
-      print(e);
-      emit(PostsFetchingErrorState());
+      emit(PostErrorState(error: e.toString()));
     }
   }
 
   FutureOr<void> addPostEventBloc(
       AddPostEvent event, Emitter<PostState> emit) async {
     try {
-      var post = event.post.toJson();
-      await _networkApiService.createPostApiResponse(AppUrl.createPost, post);
+      List<Post> listPost = List.from(state.posts);
+      emit(PostLoadingState());
+      String idPost = await _networkApiService.createPostApiResponse(
+          AppUrl.createPost, event.post.toJson());
+      Post post = await _networkApiService
+          .getPostByIdApiResponse(AppUrl.selectPostById + idPost);
+      listPost.add(post);
+      emit(PostState(posts: listPost));
     } catch (e) {
-      print(e);
-      emit(PostsFetchingErrorState());
+      emit(PostErrorState(error: e.toString()));
     }
   }
 
   FutureOr<void> updatePostEventBloc(
       UpdatePostEvent event, Emitter<PostState> emit) async {
     try {
-      var post = event.post.toJson();
-      await _networkApiService.updatePostApiResponse(AppUrl.updatePost, post);
+      List<Post> listPost = List.from(state.posts);
+      emit(PostLoadingState());
+      await _networkApiService.updatePostApiResponse(
+          AppUrl.updatePost, event.post.toJson());
+      Post post = await _networkApiService
+          .getPostByIdApiResponse("${AppUrl.selectPostById}${event.post.id}");
+      int index = listPost.indexWhere((element) => post.id == element.id);
+      if (index != -1) {
+        listPost.replaceRange(index, index + 1, [post]);
+        emit(PostState(posts: listPost));
+      } else {
+        throw Exception("Id is not a valid");
+      }
     } catch (e) {
-      print(e);
-      emit(PostsFetchingErrorState());
+      emit(PostErrorState(error: e.toString()));
     }
   }
 
   FutureOr<void> deletePostEventBloc(
       DeletePostEvent event, Emitter<PostState> emit) async {
-    emit(PostsFetchingLoadingState());
     try {
+      List<Post> listPost = List.from(state.posts);
+      emit(PostLoadingState());
       await _networkApiService
           .deleteByIdPostApiResponse("${AppUrl.deletePostById}${event.id}");
-      List<Post> posts =
-          await _networkApiService.getAllPostApiResponse(AppUrl.selectAllPost);
-      emit(PostFetchingSuccessfulState(posts: posts));
+      int index = listPost.indexWhere((element) => event.id == element.id);
+      if (index != -1) {
+        listPost.removeAt(index);
+        emit(PostState(posts: listPost));
+      } else {
+        throw Exception("Id is not a valid");
+      }
     } catch (e) {
-      print(e);
-      emit(PostsFetchingErrorState());
+      emit(PostErrorState(error: e.toString()));
     }
   }
 }
